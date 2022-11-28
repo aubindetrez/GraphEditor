@@ -50,3 +50,16 @@ Connection conn_001 {
     };
 }
 ```
+
+## Dependencies
+```
+sudo apt install build-essential git cmake libasound2-dev mesa-common-dev libx11-dev libxrandr-dev libxi-dev xorg-dev libgl1-mesa-dev libglu1-mesa-dev
+#sudo dnf install alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel libatomic
+#sudo pacman -S alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
+```
+## Compiling
+```
+git clone https://github.com/raysan5/raylib.git raylib
+cd raylib/src/
+make PLATFORM=PLATFORM_DESKTOP # To make the static version.
+```
