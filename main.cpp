@@ -22,8 +22,8 @@ int main(void)
     const int boxLineWidth = 3;
     const int boxLeftMargin = 50;
     const int boxRigthMargin = 50;
-    const int boxUpMargin = 50;
-    const int boxDownMargin = 50;
+    const int boxTopMargin = 50;
+    const int boxBottomMargin = 50;
 
     InitWindow(screenWidth, screenHeight, "Diagram editor");
 
@@ -101,10 +101,10 @@ int main(void)
         // Draw text in container (add some padding)
         DrawTextBoxed(font, text, (Rectangle){
                     container.x + boxLineWidth + boxLeftMargin,
-                    container.y + boxLineWidth + boxUpMargin,
-                    container.width - boxLineWidth - boxRigthMargin,
-                    container.height - boxLineWidth - boxDownMargin
-                }, 20.0f, 2.0f, GRAY);
+                    container.y + boxLineWidth + boxTopMargin,
+                    container.width - boxLineWidth - boxLeftMargin - boxRigthMargin,
+                    container.height - boxLineWidth - boxTopMargin - boxBottomMargin 
+                }, /*font size*/20.0f, /*spacing*/2.0f, /*color*/GRAY);
 
         DrawRectangleRec(resizer, borderColor);             // Draw the resize box
         DrawRectangleRec(mover, borderColor);             // Draw the move box
