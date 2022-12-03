@@ -13,6 +13,7 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, 
 //------------------------------------------------------------------------------------
 int main(void)
 {
+    //--------------------------------------------------------------------------------------
     // Initialization
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
@@ -32,7 +33,12 @@ int main(void)
     bool wordWrap = true;
 
     Rectangle container = { 25.0f, 25.0f, screenWidth - 50.0f, screenHeight - 250.0f };
-    Rectangle resizer = { container.x + container.width - handleSize - boxLineWidth, container.y + container.height - handleSize - boxLineWidth, handleSize, handleSize };
+    Rectangle resizer = {
+        container.x + container.width - handleSize - boxLineWidth,
+        container.y + container.height - handleSize - boxLineWidth,
+        handleSize,
+        handleSize
+    };
     Rectangle mover = { container.x, container.y, handleSize, handleSize };
 
     // Minimum width and heigh for the container rectangle
@@ -87,10 +93,10 @@ int main(void)
         mover.y = container.y;
 
         lastMouse = mouse; // Update mouse
-                           //----------------------------------------------------------------------------------
 
-                           // Draw
-                           //----------------------------------------------------------------------------------
+        //----------------------------------------------------------------------------------
+        // Draw
+        //----------------------------------------------------------------------------------
         BeginDrawing();
 
         ClearBackground(RAYWHITE);
@@ -126,8 +132,8 @@ int main(void)
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
-    CloseWindow();        // Close window and OpenGL context
-                          //--------------------------------------------------------------------------------------
+    CloseWindow(); // Close window and OpenGL context
+    //--------------------------------------------------------------------------------------
 
     return 0;
 }
@@ -137,13 +143,16 @@ int main(void)
 //--------------------------------------------------------------------------------------
 
 // Draw text using font inside rectangle limits
-static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
+static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float
+        fontSize, float spacing, bool wordWrap, Color tint)
 {
     DrawTextBoxedSelectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, WHITE, WHITE);
 }
 
 // Draw text using font inside rectangle limits with support for text selection
-static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint, int selectStart, int selectLength, Color selectTint, Color selectBackTint)
+static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
+        float fontSize, float spacing, bool wordWrap, Color tint, int
+        selectStart, int selectLength, Color selectTint, Color selectBackTint)
 {
     int length = TextLength(text);  // Total length in bytes of the text, scanned by codepoints in loop
 
@@ -175,16 +184,23 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, 
         float glyphWidth = 0;
         if (codepoint != '\n')
         {
-            glyphWidth = (font.glyphs[index].advanceX == 0) ? font.recs[index].width*scaleFactor : font.glyphs[index].advanceX*scaleFactor;
+            glyphWidth = (font.glyphs[index].advanceX == 0) ?
+                font.recs[index].width*scaleFactor :
+                font.glyphs[index].advanceX*scaleFactor;
 
             if (i + 1 < length) glyphWidth = glyphWidth + spacing;
         }
 
-        // NOTE: When wordWrap is ON we first measure how much of the text we can draw before going outside of the rec container
-        // We store this info in startLine and endLine, then we change states, draw the text between those two variables
-        // and change states again and again recursively until the end of the text (or until we get outside of the container).
-        // When wordWrap is OFF we don't need the measure state so we go to the drawing state immediately
-        // and begin drawing on the next line before we can get outside the container.
+        // NOTE: When wordWrap is ON we first measure how much of the text we
+        //can draw before going outside of the rec container
+        // We store this info in startLine and endLine, then we change
+        //states, draw the text between those two variables
+        // and change states again and again recursively until the end of
+        //the text (or until we get outside of the container).
+        // When wordWrap is OFF we don't need the measure state so we go to
+        //the drawing state immediately
+        // and begin drawing on the next line before we can get outside the
+        //container.
         if (state == MEASURE_STATE)
         {
             // TODO: There are multiple types of spaces in UNICODE, maybe it's a good idea to add support for more
@@ -255,7 +271,13 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, 
                 // Draw current character glyph
                 if ((codepoint != ' ') && (codepoint != '\t'))
                 {
-                    DrawTextCodepoint(font, codepoint, (Vector2){ rec.x + textOffsetX, rec.y + textOffsetY }, fontSize, isGlyphSelected? selectTint : tint);
+                    DrawTextCodepoint(
+                            font,
+                            codepoint,
+                            (Vector2){ rec.x + textOffsetX, rec.y + textOffsetY },
+                            fontSize,
+                            isGlyphSelected? selectTint : tint
+                            );
                 }
             }
 
@@ -273,6 +295,7 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, 
             }
         }
 
-        if ((textOffsetX != 0) || (codepoint != ' ')) textOffsetX += glyphWidth;  // avoid leading spaces
+        // avoid leading spaces
+        if ((textOffsetX != 0) || (codepoint != ' ')) textOffsetX += glyphWidth;
     }
 }
