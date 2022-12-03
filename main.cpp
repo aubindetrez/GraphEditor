@@ -17,6 +17,12 @@ int main(void)
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
+    const int handleSize = 14;
+    const int boxLineWidth = 3;
+    const int boxLeftMargin = 50;
+    const int boxRigthMargin = 50;
+    const int boxUpMargin = 50;
+    const int boxDownMargin = 50;
 
     InitWindow(screenWidth, screenHeight, "Diagram editor");
 
@@ -26,7 +32,8 @@ int main(void)
     bool wordWrap = true;
 
     Rectangle container = { 25.0f, 25.0f, screenWidth - 50.0f, screenHeight - 250.0f };
-    Rectangle resizer = { container.x + container.width - 17, container.y + container.height - 17, 14, 14 };
+    Rectangle resizer = { container.x + container.width - handleSize - boxLineWidth, container.y + container.height - handleSize - boxLineWidth, handleSize, handleSize };
+    Rectangle mover = { container.x, container.y, handleSize, handleSize };
 
     // Minimum width and heigh for the container rectangle
     const float minWidth = 60;
@@ -72,8 +79,12 @@ int main(void)
         }
 
         // Move resizer rectangle properly
-        resizer.x = container.x + container.width - 17;
-        resizer.y = container.y + container.height - 17;
+        resizer.x = container.x + container.width - handleSize - boxLineWidth;
+        resizer.y = container.y + container.height - handleSize - boxLineWidth;
+
+        // Move mover rectangle properly
+        mover.x = container.x;
+        mover.y = container.y;
 
         lastMouse = mouse; // Update mouse
                            //----------------------------------------------------------------------------------
@@ -84,24 +95,30 @@ int main(void)
 
         ClearBackground(RAYWHITE);
 
-        DrawRectangleLinesEx(container, 3, borderColor);    // Draw container border
+        DrawRectangleLinesEx(container, boxLineWidth, borderColor);    // Draw container border
 
         // Draw text in container (add some padding)
-        DrawTextBoxed(font, text, (Rectangle){ container.x + 4, container.y + 4, container.width - 4, container.height - 4 }, 20.0f, 2.0f, wordWrap, GRAY);
+        DrawTextBoxed(font, text, (Rectangle){
+                    container.x + boxLineWidth + boxLeftMargin,
+                    container.y + boxLineWidth + boxUpMargin,
+                    container.width - boxLineWidth - boxRigthMargin,
+                    container.height - boxLineWidth - boxDownMargin
+                }, 20.0f, 2.0f, wordWrap, GRAY);
 
         DrawRectangleRec(resizer, borderColor);             // Draw the resize box
+        DrawRectangleRec(mover, borderColor);             // Draw the move box
 
         // Draw bottom info
-        DrawRectangle(0, screenHeight - 54, screenWidth, 54, GRAY);
-        DrawRectangleRec((Rectangle){ 382.0f, screenHeight - 34.0f, 12.0f, 12.0f }, MAROON);
+        //DrawRectangle(0, screenHeight - 54, screenWidth, 54, GRAY);
+        //DrawRectangleRec((Rectangle){ 382.0f, screenHeight - 34.0f, 12.0f, 12.0f }, MAROON);
 
-        DrawText("Word Wrap: ", 313, screenHeight-115, 20, BLACK);
-        if (wordWrap) DrawText("ON", 447, screenHeight - 115, 20, RED);
-        else DrawText("OFF", 447, screenHeight - 115, 20, BLACK);
+        //DrawText("Word Wrap: ", 313, screenHeight-115, 20, BLACK);
+        //if (wordWrap) DrawText("ON", 447, screenHeight - 115, 20, RED);
+        //else DrawText("OFF", 447, screenHeight - 115, 20, BLACK);
 
-        DrawText("Press [SPACE] to toggle word wrap", 218, screenHeight - 86, 20, GRAY);
+        //DrawText("Press [SPACE] to toggle word wrap", 218, screenHeight - 86, 20, GRAY);
 
-        DrawText("Click hold & drag the    to resize the container", 155, screenHeight - 38, 20, RAYWHITE);
+        //DrawText("Click hold & drag the    to resize the container", 155, screenHeight - 38, 20, RAYWHITE);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
@@ -226,7 +243,12 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, 
                 bool isGlyphSelected = false;
                 if ((selectStart >= 0) && (k >= selectStart) && (k < (selectStart + selectLength)))
                 {
-                    DrawRectangleRec((Rectangle){ rec.x + textOffsetX - 1, rec.y + textOffsetY, glyphWidth, (float)font.baseSize*scaleFactor }, selectBackTint);
+                    DrawRectangleRec((Rectangle){
+                            /* X */rec.x + textOffsetX - 1,
+                            /* Y */ rec.y + textOffsetY,
+                            /* Width */ glyphWidth,
+                            /* Height */ (float)font.baseSize*scaleFactor },
+                            /* Color */ selectBackTint);
                     isGlyphSelected = true;
                 }
 
