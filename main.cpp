@@ -5,7 +5,6 @@
 // - Add cursor when text is entered (in editing mode)
 // - Only redraw screen when needed (not every frame)
 // - Add Vim mode (in editing mode)
-// - Add new line (in editing mode)
 // - Add "[...]" at the bottom if the text doesn't fit
 
 #define MAX_INPUT_CHARS 255
