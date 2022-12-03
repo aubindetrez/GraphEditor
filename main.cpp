@@ -192,15 +192,13 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
         }
 
         // NOTE: When wordWrap is ON we first measure how much of the text we
-        //can draw before going outside of the rec container
-        // We store this info in startLine and endLine, then we change
-        //states, draw the text between those two variables
-        // and change states again and again recursively until the end of
-        //the text (or until we get outside of the container).
-        // When wordWrap is OFF we don't need the measure state so we go to
-        //the drawing state immediately
-        // and begin drawing on the next line before we can get outside the
-        //container.
+        // can draw before going outside of the rec container We store this info
+        // in startLine and endLine, then we change states, draw the text
+        // between those two variables and change states again and again
+        // recursively until the end of the text (or until we get outside of
+        // the container). When wordWrap is OFF we don't need the
+        // measure state so we go to the drawing state immediately and begin
+        // drawing on the next line before we can get outside the container.
         if (state == MEASURE_STATE)
         {
             // TODO: There are multiple types of spaces in UNICODE, maybe it's a good idea to add support for more
@@ -234,7 +232,7 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
                 k = tmp;
             }
         }
-        else
+        else // state == DRAW_STATE
         {
             if (codepoint == '\n')
             {
