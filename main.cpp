@@ -2,10 +2,10 @@
 
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing,
-        bool wordWrap, Color tint);
+        Color tint);
 // Draw text using font inside rectangle limits with support for text selection
 static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, float fontSize,
-        float spacing, bool wordWrap, Color tint, int selectStart, int selectLength,
+        float spacing, Color tint, int selectStart, int selectLength,
         Color selectTint, Color selectBackTint);
 
 //------------------------------------------------------------------------------------
@@ -30,7 +30,6 @@ int main(void)
     const char text[] = "Here goes your text";
 
     bool resizing = false;
-    bool wordWrap = true;
 
     Rectangle container = { 25.0f, 25.0f, screenWidth - 50.0f, screenHeight - 250.0f };
     Rectangle resizer = {
@@ -57,10 +56,6 @@ int main(void)
                                         // Main game loop
     while (!WindowShouldClose())        // Detect window close button or ESC key
     {
-        // Update
-        //----------------------------------------------------------------------------------
-        if (IsKeyPressed(KEY_SPACE)) wordWrap = !wordWrap;
-
         Vector2 mouse = GetMousePosition();
 
         // Check if the mouse is inside the container and toggle border color
@@ -109,7 +104,7 @@ int main(void)
                     container.y + boxLineWidth + boxUpMargin,
                     container.width - boxLineWidth - boxRigthMargin,
                     container.height - boxLineWidth - boxDownMargin
-                }, 20.0f, 2.0f, wordWrap, GRAY);
+                }, 20.0f, 2.0f, GRAY);
 
         DrawRectangleRec(resizer, borderColor);             // Draw the resize box
         DrawRectangleRec(mover, borderColor);             // Draw the move box
@@ -119,7 +114,6 @@ int main(void)
         //DrawRectangleRec((Rectangle){ 382.0f, screenHeight - 34.0f, 12.0f, 12.0f }, MAROON);
 
         //DrawText("Word Wrap: ", 313, screenHeight-115, 20, BLACK);
-        //if (wordWrap) DrawText("ON", 447, screenHeight - 115, 20, RED);
         //else DrawText("OFF", 447, screenHeight - 115, 20, BLACK);
 
         //DrawText("Press [SPACE] to toggle word wrap", 218, screenHeight - 86, 20, GRAY);
@@ -144,16 +138,14 @@ int main(void)
 
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float
-        fontSize, float spacing, bool wordWrap, Color tint)
-{
-    DrawTextBoxedSelectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, WHITE, WHITE);
+        fontSize, float spacing, Color tint) {
+    DrawTextBoxedSelectable(font, text, rec, fontSize, spacing, tint, 0, 0, WHITE, WHITE);
 }
 
 // Draw text using font inside rectangle limits with support for text selection
 static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
-        float fontSize, float spacing, bool wordWrap, Color tint, int
-        selectStart, int selectLength, Color selectTint, Color selectBackTint)
-{
+        float fontSize, float spacing, Color tint, int
+        selectStart, int selectLength, Color selectTint, Color selectBackTint) {
     int length = TextLength(text);  // Total length in bytes of the text, scanned by codepoints in loop
 
     float textOffsetY = 0;          // Offset between lines (on line break '\n')
@@ -163,14 +155,13 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
 
     // Word/character wrapping mechanism variables
     enum { MEASURE_STATE = 0, DRAW_STATE = 1 };
-    int state = wordWrap? MEASURE_STATE : DRAW_STATE;
+    int state = MEASURE_STATE;
 
     int startLine = -1;         // Index where to begin drawing (where a line begins)
     int endLine = -1;           // Index where to stop drawing (where a line ends)
     int lastk = -1;             // Holds last value of the character position
 
-    for (int i = 0, k = 0; i < length; i++, k++)
-    {
+    for (int i = 0, k = 0; i < length; i++, k++) {
         // Get next codepoint from byte string and glyph index in font
         int codepointByteCount = 0;
         int codepoint = GetCodepoint(&text[i], &codepointByteCount);
@@ -191,14 +182,12 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
             if (i + 1 < length) glyphWidth = glyphWidth + spacing;
         }
 
-        // NOTE: When wordWrap is ON we first measure how much of the text we
-        // can draw before going outside of the rec container We store this info
-        // in startLine and endLine, then we change states, draw the text
+        // We first measure how much of the text we can draw before going outside of the rec
+        // container.
+        // We store this info in startLine and endLine, then we change states, draw the text
         // between those two variables and change states again and again
         // recursively until the end of the text (or until we get outside of
-        // the container). When wordWrap is OFF we don't need the
-        // measure state so we go to the drawing state immediately and begin
-        // drawing on the next line before we can get outside the container.
+        // the container).
         if (state == MEASURE_STATE)
         {
             // TODO: There are multiple types of spaces in UNICODE, maybe it's a good idea to add support for more
@@ -236,20 +225,9 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
         {
             if (codepoint == '\n')
             {
-                if (!wordWrap)
-                {
-                    textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
-                    textOffsetX = 0;
-                }
             }
             else
             {
-                if (!wordWrap && ((textOffsetX + glyphWidth) > rec.width))
-                {
-                    textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
-                    textOffsetX = 0;
-                }
-
                 // When text overflows rectangle height limit, just stop drawing
                 if ((textOffsetY + font.baseSize*scaleFactor) > rec.height) break;
 
@@ -279,7 +257,7 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
                 }
             }
 
-            if (wordWrap && (i == endLine))
+            if (i == endLine)
             {
                 textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
                 textOffsetX = 0;
@@ -295,5 +273,5 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
 
         // avoid leading spaces
         if ((textOffsetX != 0) || (codepoint != ' ')) textOffsetX += glyphWidth;
-    }
+    } // For each character
 }
