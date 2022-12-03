@@ -6,7 +6,7 @@
 // - Only redraw screen when needed (not every frame)
 // - Add Vim mode (in editing mode)
 // - Add "[...]" at the bottom if the text doesn't fit
-// - Drag/Move the text block around
+// - Add key repeat
 
 #define MAX_INPUT_CHARS 255
 
@@ -40,6 +40,7 @@ int main(void)
     char text[MAX_INPUT_CHARS] = "Here goes your text";
 
     bool resizing = false;
+    bool moving = false;
     bool readyToType = false;
 
     Rectangle container = { 25.0f, 25.0f, screenWidth - 50.0f, screenHeight - 250.0f };
@@ -71,7 +72,7 @@ int main(void)
 
         // Check if the mouse is inside the container and toggle border color
         if (CheckCollisionPointRec(mouse, container)) borderColor = Fade(MAROON, 0.4f);
-        else if (!resizing) borderColor = MAROON;
+        else if (!resizing && !moving) borderColor = MAROON;
 
         // Container resizing logic
         if (resizing)
@@ -84,11 +85,23 @@ int main(void)
             float height = container.height + (mouse.y - lastMouse.y);
             container.height = (height > minHeight)? ((height < maxHeight)? height : maxHeight) : minHeight;
         }
+        // Container moving logic
+        else if (moving)
+        {
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) moving = false;
+
+            float x = mouse.x - lastMouse.x;
+            container.x += x;
+
+            float y = mouse.y - lastMouse.y;
+            container.y += y;
+        }
         else
         {
             // Check if we're resizing
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 if (CheckCollisionPointRec(mouse, resizer)) resizing = true;
+                else if (CheckCollisionPointRec(mouse, mover)) moving = true;
 
                 // Click on the rectangle to type, click somewhere else to exit typing mode
                 if (CheckCollisionPointRec(mouse, container)) readyToType = true;
