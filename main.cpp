@@ -6,6 +6,7 @@
 // - Only redraw screen when needed (not every frame)
 // - Add Vim mode (in editing mode)
 // - Add "[...]" at the bottom if the text doesn't fit
+// - Drag/Move the text block around
 
 #define MAX_INPUT_CHARS 255
 
