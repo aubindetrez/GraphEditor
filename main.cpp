@@ -1,6 +1,13 @@
 #include <string.h>
 #include "raylib.h"
 
+// To do:
+// - Add cursor when text is entered (in editing mode)
+// - Only redraw screen when needed (not every frame)
+// - Add Vim mode (in editing mode)
+// - Add new line (in editing mode)
+// - Add "[...]" at the bottom if the text doesn't fit
+
 #define MAX_INPUT_CHARS 255
 
 // Draw text using font inside rectangle limits
@@ -97,15 +104,22 @@ int main(void)
             int letterCount = strlen(text);
             if (IsKeyPressed(KEY_BACKSPACE)) {
                 if (letterCount > 0) text[letterCount-1] = '\0';
+            } if (IsKeyPressed(KEY_ENTER)) {
+                if (letterCount < MAX_INPUT_CHARS) {
+                    text[letterCount] = '\n';
+                    text[letterCount+1] = '\0'; // Add null terminator
+                }
             } else {
                 int key = GetCharPressed();
                 while (key > 0)
                 {
-                    // NOTE: Only allow keys in range [32..125]
-                    if ((key >= 32) && (key <= 125) && (letterCount < MAX_INPUT_CHARS))
-                    {
-                        text[letterCount] = (char)key;
-                        text[letterCount+1] = '\0'; // Add null terminator at the end of the string.
+                    if (letterCount < MAX_INPUT_CHARS) {
+                        // NOTE: Only allow keys in range [32..125]
+                        if ((key >= 32) && (key <= 125))
+                        {
+                            text[letterCount] = (char)key;
+                            text[letterCount+1] = '\0'; // Add null terminator at the end of the string.
+                        }
                     }
                     key = GetCharPressed();  // Check next character in the queue
                 }
