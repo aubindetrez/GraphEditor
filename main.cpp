@@ -1,4 +1,7 @@
+#include <string.h>
 #include "raylib.h"
+
+#define MAX_INPUT_CHARS 255
 
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing,
@@ -27,9 +30,10 @@ int main(void)
 
     InitWindow(screenWidth, screenHeight, "Diagram editor");
 
-    const char text[] = "Here goes your text";
+    char text[MAX_INPUT_CHARS] = "Here goes your text";
 
     bool resizing = false;
+    bool readyToType = false;
 
     Rectangle container = { 25.0f, 25.0f, screenWidth - 50.0f, screenHeight - 250.0f };
     Rectangle resizer = {
@@ -76,7 +80,38 @@ int main(void)
         else
         {
             // Check if we're resizing
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, resizer)) resizing = true;
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                if (CheckCollisionPointRec(mouse, resizer)) resizing = true;
+
+                // Click on the rectangle to type, click somewhere else to exit typing mode
+                if (CheckCollisionPointRec(mouse, container)) readyToType = true;
+                else readyToType = false;
+            }
+        }
+
+        // Typing in rectangle
+        if (readyToType)
+        {
+            SetMouseCursor(MOUSE_CURSOR_IBEAM);
+            // Get char pressed (unicode character) on the queue
+            int letterCount = strlen(text);
+            if (IsKeyPressed(KEY_BACKSPACE)) {
+                if (letterCount > 0) text[letterCount-1] = '\0';
+            } else {
+                int key = GetCharPressed();
+                while (key > 0)
+                {
+                    // NOTE: Only allow keys in range [32..125]
+                    if ((key >= 32) && (key <= 125) && (letterCount < MAX_INPUT_CHARS))
+                    {
+                        text[letterCount] = (char)key;
+                        text[letterCount+1] = '\0'; // Add null terminator at the end of the string.
+                    }
+                    key = GetCharPressed();  // Check next character in the queue
+                }
+            }
+        } else {
+            SetMouseCursor(MOUSE_CURSOR_DEFAULT);
         }
 
         // Move resizer rectangle properly
