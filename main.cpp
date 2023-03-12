@@ -17,6 +17,9 @@ static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float font
 static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, float fontSize,
         float spacing, Color tint, int selectStart, int selectLength,
         Color selectTint, Color selectBackTint);
+static void DrawTextBoxedSelectable_refactor(Font font, const char *text, Rectangle rec, float fontSize,
+        float spacing, Color tint, int selectStart, int selectLength,
+        Color selectTint, Color selectBackTint);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -41,7 +44,7 @@ int main(void)
 
     bool resizing = false;
     bool moving = false;
-    bool readyToType = false;
+    bool insert_mode = false;
 
     Rectangle container = { 25.0f, 25.0f, screenWidth - 50.0f, screenHeight - 250.0f };
     Rectangle resizer = {
@@ -104,13 +107,13 @@ int main(void)
                 else if (CheckCollisionPointRec(mouse, mover)) moving = true;
 
                 // Click on the rectangle to type, click somewhere else to exit typing mode
-                if (CheckCollisionPointRec(mouse, container)) readyToType = true;
-                else readyToType = false;
+                if (CheckCollisionPointRec(mouse, container)) insert_mode = true;
+                else insert_mode = false;
             }
         }
 
         // Typing in rectangle
-        if (readyToType)
+        if (insert_mode)
         {
             SetMouseCursor(MOUSE_CURSOR_IBEAM);
             // Get char pressed (unicode character) on the queue
@@ -201,7 +204,12 @@ int main(void)
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float
         fontSize, float spacing, Color tint) {
-    DrawTextBoxedSelectable(font, text, rec, fontSize, spacing, tint, 0, 0, WHITE, WHITE);
+    DrawTextBoxedSelectable_refactor(font, text, rec, fontSize, spacing, tint, 0, 0, WHITE, WHITE);
+}
+
+// Takes a codepoint returned by GetCodepoint() and returns true if it is a whitespace
+bool is_codepoint_whtspace(int codepoint) {
+    return (codepoint == ' ') || (codepoint == '\t') || (codepoint == '\n');
 }
 
 // Draw text using font inside rectangle limits with support for text selection
@@ -247,29 +255,34 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
         // We first measure how much of the text we can draw before going outside of the rec
         // container.
         // We store this info in startLine and endLine, then we change states, draw the text
-        // between those two variables and change states again and again
-        // recursively until the end of the text (or until we get outside of
-        // the container).
+        // between those two variables and change states again until the end of the text
+        // (or until we get outside of the container).
         if (state == MEASURE_STATE)
         {
-            // TODO: There are multiple types of spaces in UNICODE, maybe it's a good idea to add support for more
-            // Ref: http://jkorpela.fi/chars/spaces.html
-            if ((codepoint == ' ') || (codepoint == '\t') || (codepoint == '\n')) endLine = i;
 
-            if ((textOffsetX + glyphWidth) > rec.width)
+            // If a white space is encountered, we can break the line here
+            if (is_codepoint_whtspace(codepoint)) endLine = i;
+            // TODO: Add support for more unicode whitespaces
+            // TODO: configure how wide are tabs
+            // TODO: Add a ":set list" option to print spaces as characters
+            // Ref: http://jkorpela.fi/chars/spaces.html
+
+            if ((textOffsetX + glyphWidth) > rec.width) // Wrap the line
             {
-                endLine = (endLine < 1)? i : endLine;
+                // If no white space to wrap on, wrap on the previous glyph
+                if (endLine < 1) endLine=i;
+
                 if (i == endLine) endLine -= codepointByteCount;
                 if ((startLine + codepointByteCount) == endLine) endLine = (i - codepointByteCount);
 
-                state = !state;
+                state = DRAW_STATE;
             }
-            else if ((i + 1) == length)
+            else if ((i + 1) == length) // End of buffer
             {
                 endLine = i;
-                state = !state;
+                state = DRAW_STATE;
             }
-            else if (codepoint == '\n') state = !state;
+            else if (codepoint == '\n') state = DRAW_STATE; // End of line
 
             if (state == DRAW_STATE)
             {
@@ -277,7 +290,7 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
                 i = startLine;
                 glyphWidth = 0;
 
-                // Save character position when we switch states
+                // Save glyph position when we switch states
                 int tmp = lastk;
                 lastk = k - 1;
                 k = tmp;
@@ -335,5 +348,152 @@ static void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec,
 
         // avoid leading spaces
         if ((textOffsetX != 0) || (codepoint != ' ')) textOffsetX += glyphWidth;
-    } // For each character
+    } // For each character glyph
+}
+
+static void DrawTextBoxedSelectable_refactor(Font font, const char *text, Rectangle rec,
+        float fontSize, float spacing, Color tint, int
+        selectStart, int selectLength, Color selectTint, Color selectBackTint) {
+
+    // NO_WRAP: Do not wrap lines
+    // WRAP_WORD: Wrap line on a whitespace (if any)
+    // WRAP_CHAR: Wrap line on any character
+    const enum {NO_WRAP=0, WRAP_WORD=1, WRAP_CHAR=2} wrap_mode = WRAP_WORD;
+
+    int length_byte = TextLength(text);  // Total length in bytes of the text
+    float textOffsetX = 0.0f; // Horizontal position of the next character to be drawn
+    float textOffsetY = 0.0f; // Vertical position of the next character to be drawn
+    float scaleFactor = fontSize/(float)font.baseSize; // Character rectangle scaling factor
+    int byte_line_start = 0; // First character of the current line (Index in 'text')
+
+    // Because it is UTF-8 a character can be more than 1-byte
+    size_t byte = 0; // Index (byte) of the current glyph in 'text'
+    size_t last_byte = 0; // Index in 'text' of the last byte (previous iteration)
+
+    // For all glyphs we need first to check if we need to wrap the line before we start drawing
+    // the characters one by one. Stop when there is no more vertical space
+    while (byte < length_byte) {
+        int byte_last_whtspc = 0; // Index of the last white space in 'text' (for the current line)
+        int codepointByteCount = 0;
+        int codepoint = GetCodepoint(&text[i], &codepointByteCount);
+        //if (codepoint == '?' /*0x3f*/) codepointByteCount = 1;
+        int index = GetGlyphIndex(font, codepoint);
+
+        // With UTF-8 a glygh can be many byte
+        last_byte = byte; // Save the index of the previous byte, if the new one does not fit
+                          // in the screen we know where is the last character we should draw
+        byte += codepointByteCount;
+        // TODO expand tabs
+
+        // Get the glyph width
+        float glyphWidth = 0;
+        if (codepoint != '\n') {
+            if (font.glyphs[index].advanceX == 0)
+                glyphWidth = font.recs[index].width*scaleFactor;
+            else
+                glyphWidth = font.glyphs[index].advanceX*scaleFactor;
+
+            // Spaceout characters
+            glyphWidth = glyphWidth + spacing;
+        }
+
+        // If character can be used to wrap the line, store the index in wrap_position
+        // We store the index of the character before the space. We want the wrapped line to
+        // start with the white space
+        if (is_codepoint_whtspace(codepoint)) byte_last_whtspc = last_byte;
+
+        if (wrap_mode == WRAP_CHAR) {
+            // if the current character does not fit on screen
+            if (codepoint == '\n' || textOffsetX+glyphWidth > rec.width) {
+                DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
+                byte_line_start = byte; // New line start with the character that didn't fit
+                // If the next line does not fit in the rectangle, stop drawing
+                // TODO
+            }
+
+            // Draw the character
+            // TODO change tint
+            if (codepoint != '\n') DrawChar(font, codepoint, position, fontSize, tint);
+            
+        } else if (wrap_mode == WRAP_WORD) {
+            // We wait for the line not to fit in the screen or for the last character
+            // before we draw the line (and stop at the last whitespace)
+            if (codepoint == '\n' || textOffsetX+glyphWidth > rec.width || byte = length_byte) {
+                int wrap_position = byte_last_whtspc;
+
+                // If there was no white space in this line, wrap on the last character that fits.
+                if (wrap_position <= byte_line_start) {
+                    wrap_position = last_byte;
+                }
+
+                DrawTextLine(font,
+                        /*Start of the line*/ text+byte_line_start, // First character to be drawn
+                        /*End of the line*/ text+wrap_position, // Last character to be drawn
+                        rec, fontSize, spacing, tint, selectStart,
+                        selectLength, selectTint, selectBackTint);
+
+                DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
+                byte_line_start = byte; // New line start with the character that didn't fit
+                // If the next line does not fit in the rectangle, stop drawing
+                // TODO
+            }
+        } else if (wrap_mode == NO_WRAP) {
+            if (codepoint == '\n') {
+                DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
+                byte_line_start = byte;
+                // If the next line does not fit in the rectangle, stop drawing
+                // TODO
+            }
+            else if (textOffsetX+glyphWidth > rec.width) {
+                // If the character does not fit on the screen, ignore it
+            } else {
+                DrawChar(font, codepoint, position, fontSize, tint);
+            }
+        }
+
+        // TODO draw the cursor
+    }
+}
+
+static void DrawNewLine(Font font, float *textOffsetX, float *textOffsetY, const float &scaleFactor) {
+    textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
+    textOffsetX = 0;
+}
+
+static void DrawChar(Font font, const char *line_start, const char* line_end, Rectangle rec,
+        float fontSize, float spacing, Color tint, int
+        selectStart, int selectLength, Color selectTint, Color selectBackTint) {
+    DrawTextCodepoint(
+            font,
+            codepoint,
+            (Vector2){ rec.x + textOffsetX, rec.y + textOffsetY },
+            fontSize,
+            isGlyphSelected? selectTint : tint
+            );
+}
+
+static void DrawTextLine(Font font, const char *line_start, const char* line_end, Rectangle rec,
+        float fontSize, float spacing, Color tint, int
+        selectStart, int selectLength, Color selectTint, Color selectBackTint) {
+            // Draw background (highlight)
+            // TODO
+
+            // Draw underline
+            DrawTextCodepoint(
+                    font, // TODO select different fonts
+                    codepoint,
+                    (Vector2){ rec.x + textOffsetX, rec.y + textOffsetY },
+                    fontSize, // TODO select different font size
+                    tint // Select different tint
+                    );
+
+            // Draw overline
+            // TODO
+
+            // Update textOffsetX and textOffsetY
+            textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
+            textOffsetX = 0; // Start new line on the left
+
+            // After drawing the line we update textOffsetY to the next line
+
 }
