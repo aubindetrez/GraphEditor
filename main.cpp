@@ -59,11 +59,11 @@ int main(void)
     const float maxHeight = screenHeight - 160.0f;
 
     Vector2 lastMouse = { 0.0f, 0.0f }; // Stores last mouse coordinates
-    Color borderColor = Fade(MAROON, 0.4f);         // Container border color
+    Color borderColor = Fade(MAROON, 0.4f); // Container border color
     Font font = GetFontDefault();       // Get default system font
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
-                                        //--------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------
 
                                         // Main game loop
     while (!WindowShouldClose())        // Detect window close button or ESC key
@@ -124,11 +124,11 @@ int main(void)
                 }
             } else {
                 int key = GetCharPressed();
-                while (key > 0)
+                while (key > 0) // For all unicode character
                 {
                     if (letterCount < MAX_INPUT_CHARS) {
-                        // NOTE: Only allow keys in range [32..125]
-                        if ((key >= 32) && (key <= 125))
+                        // NOTE: Only allow printable keys [32..126] = [' '..'~'] 
+                        if ((key >= ' ') && (key <= '~'))
                         {
                             text[letterCount] = (char)key;
                             text[letterCount+1] = '\0'; // Add null terminator at the end of the string.
