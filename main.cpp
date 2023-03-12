@@ -37,7 +37,7 @@ int main(void)
 
     InitWindow(screenWidth, screenHeight, "Diagram editor");
 
-    char text[MAX_INPUT_CHARS] = "Here goes your text";
+    char text[MAX_INPUT_CHARS] = "";
 
     bool resizing = false;
     bool moving = false;
