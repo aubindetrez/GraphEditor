@@ -59,7 +59,7 @@ int main(void)
     const float maxHeight = screenHeight - 160.0f;
 
     Vector2 lastMouse = { 0.0f, 0.0f }; // Stores last mouse coordinates
-    Color borderColor = MAROON;         // Container border color
+    Color borderColor = Fade(MAROON, 0.4f);         // Container border color
     Font font = GetFontDefault();       // Get default system font
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
@@ -71,8 +71,8 @@ int main(void)
         Vector2 mouse = GetMousePosition();
 
         // Check if the mouse is inside the container and toggle border color
-        if (CheckCollisionPointRec(mouse, container)) borderColor = Fade(MAROON, 0.4f);
-        else if (!resizing && !moving) borderColor = MAROON;
+        if (CheckCollisionPointRec(mouse, container)) borderColor = MAROON;
+        else if (!resizing && !moving) borderColor = Fade(MAROON, 0.4f);
 
         // Container resizing logic
         if (resizing)
