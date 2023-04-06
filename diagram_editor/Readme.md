@@ -1,7 +1,27 @@
 # Diagram Editor GUI in Rust
 
 ## Features
-- Nothing
+ - Nothing
+
+## To dos
+ - Add help menu
+     - `CTRL+]` to open a link
+ - Have smooth cursor movements (optional)
+ - Have smooth scrolling (optional)
+    - [How GNVIM is doing it](https://github.com/vhakulinen/gnvim/blob/1594850acdd0b39fdf4ab2d7188178fc5f832460/ui/src/components/grid-buffer/mod.rs#L152-L201)
+ - Add option to draw in a Drawing Area of a GL Area
+ - Add Color picker
+ - Add Calendar picker
+ - Add Emogy picker
+ - Add option for a zoom-out minimap
+ - Add Images in the middle of text files
+    - Store information in a hidden companion file
+ - Add Videos in the middle of text files
+    - Store information in a hidden companion file
+ - Have a separate thread to run builds...
+ - Add GUI to select fonts on `:set guifont=*`
+ - Add GUI to set the application for `gx`
+ - Add "Print to pdf" option
 
 ## Build/Install
 
