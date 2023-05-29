@@ -63,3 +63,15 @@ git clone https://github.com/raysan5/raylib.git raylib
 cd raylib/src/
 make PLATFORM=PLATFORM_DESKTOP # To make the static version.
 ```
+
+## Q&A
+
+### Rust vs C++
+Short version: I need a low-maintenance Language+Library
+
+
+Long version: I initially started this project using Rust, but it became obvious that the API
+wasn't stable enough. Rust's userbase is growing and the language changed a lot since I started
+using it (~2018), making my projects obsolete.
+This is just a toy project, and it requires a language (/set of library) that would allow me to
+stop working on the project for months/years without having to refactor it when I get back to it.
