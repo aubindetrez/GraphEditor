@@ -11,6 +11,8 @@ CPPFLAGS = $(INCLUDE_DIR) $(DEFINES) -Wno-missing-braces -Wunused-result -s -O1 
 .PHONY: all
 all: de
 
+CFLAGS += -Wall -Werror -Wpedantic
+
 de: src/main.cpp
 	$(CC) -o $@ $^ $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 
