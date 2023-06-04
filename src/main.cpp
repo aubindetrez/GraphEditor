@@ -3,12 +3,10 @@
 #include "raylib.h"
 
 // To do:
-// - Fix ENTER: Not always registered
 // - Add cursor when text is entered (in editing mode)
 // - Only redraw screen when needed (not every frame)
 // - Add Vim mode (in editing mode)
 // - Add "[...]" at the bottom if the text doesn't fit
-// - Add key repeat
 
 #define MAX_INPUT_CHARS 255
 
@@ -118,30 +116,41 @@ int main(void)
             SetMouseCursor(MOUSE_CURSOR_IBEAM);
             // Get char pressed (unicode character) on the queue
             int letterCount = strlen(text);
-            if (IsKeyPressed(KEY_BACKSPACE)) {
-                if (letterCount > 0) text[letterCount-1] = '\0';
-            } if (IsKeyPressed(KEY_ENTER)) {
-                printf("Enter pressed\n");
-                if (letterCount < MAX_INPUT_CHARS) {
-                    text[letterCount] = '\n';
-                    text[letterCount+1] = '\0'; // Add null terminator
-                }
-            } else {
-                int key = GetCharPressed();
-                while (key > 0) // For all unicode character
-                {
-                    if (letterCount < MAX_INPUT_CHARS) {
-                        // NOTE: Only allow printable keys [32..126] = [' '..'~'] 
-                        if ((key >= ' ') && (key <= '~'))
-                        {
-                            text[letterCount] = (char)key;
-                            text[letterCount+1] = '\0'; // Add null terminator at the end of the string.
-                        } else {
-                            printf("Non printable character: %d\n", key);
-                        }
+
+            // Keys (backspace and enter)
+            int key_pressed = GetKeyPressed();
+            while (key_pressed > 0) { // Handle keys until buffer is empty
+                if (key_pressed == KEY_BACKSPACE) {
+                    if (letterCount > 0) {
+                        text[letterCount-1] = '\0';
+                        letterCount--;
                     }
-                    key = GetCharPressed();  // Check next character in the queue
+                } if (key_pressed == KEY_ENTER) {
+                    if (letterCount < MAX_INPUT_CHARS) {
+                        text[letterCount] = '\n';
+                        text[letterCount+1] = '\0'; // Add null terminator
+                        letterCount++;
+                    }
                 }
+                key_pressed = GetKeyPressed();
+            }
+
+            // All other chars
+            int char_pressed = GetCharPressed();
+            while (char_pressed > 0) // Handle keys until buffer is empty
+            {
+                if (letterCount < MAX_INPUT_CHARS) {
+                    // NOTE: Only allow printable keys [32..126] = [' '..'~'] 
+                    if ((char_pressed >= ' ') && (char_pressed <= '~'))
+                    {
+                        text[letterCount] = (char)char_pressed;
+                        text[letterCount+1] = '\0'; // Add null terminator at the end of the string.
+                        letterCount++;
+                    } else {
+                        printf("Non printable character: %d\n", char_pressed);
+                    }
+                }
+                char_pressed = GetCharPressed();  // Check next character in the queue
             }
         } else {
             SetMouseCursor(MOUSE_CURSOR_DEFAULT);

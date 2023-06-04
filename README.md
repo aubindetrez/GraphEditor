@@ -60,12 +60,9 @@ sudo apt install build-essential git cmake libasound2-dev mesa-common-dev libx11
 
 ## Compiling
 ```
-mkdir deps # Create directory for the dependencies
-pushd deps/ # Go to the directory (save the current directory to the stack) (1)
-git clone https://github.com/raysan5/raylib.git raylib
-cd raylib/src/
-make PLATFORM=PLATFORM_DESKTOP # To make the static version.
-popd # Go back to the previous directory (1)
+git clone --recurse-submodules  https://github.com/aubindetrez/GraphEditor.git GraphEditor
+cd GraphEditor
+make
 ```
 
 ## Q&A
