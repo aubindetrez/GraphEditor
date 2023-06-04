@@ -34,16 +34,16 @@ raylib:
 	$(MAKE) -C deps/raylib/src PLATFORM=PLATFORM_DESKTOP
 
 de: $(OBJECTS) | raylib
-	$(CC) -o $@ $^ $(LDFLAGS) $(TARGET_ARCH)
+	$(CXX) -o $@ $^ $(LDFLAGS) $(TARGET_ARCH)
 
 main.o: $(MAIN_SOURCES)
-	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH)
+	$(CXX) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH)
 
 xlib_deps.o: src/xlib_deps.cpp
-	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH)
+	$(CXX) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH)
 
 fontconfig_deps.o: src/fontconfig_deps.cpp
-	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH)
+	$(CXX) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH)
 
 .PHONY: clean
 clean:
