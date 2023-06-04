@@ -13,7 +13,7 @@
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing,
         Color tint);
-static void DrawSelectableTextBox(Font font, const char *text, Rectangle rec, float fontSize,
+static void DrawTextInRectanble(Font font, const char *text, Rectangle rec, float fontSize,
         float spacing, Color tint, int selectStart, int selectLength,
         Color selectTint, Color selectBackTint);
 static void DrawChar(const Font &, int, const Vector2 &, float, const Color &);
@@ -218,7 +218,7 @@ int main(void)
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float
         fontSize, float spacing, Color tint) {
-    DrawSelectableTextBox(font, text, rec, fontSize, spacing, tint, 0, 0, WHITE, WHITE);
+    DrawTextInRectanble(font, text, rec, fontSize, spacing, tint, 0, 0, WHITE, WHITE);
 }
 
 // Takes a codepoint returned by GetCodepoint() and returns true if it is a whitespace
@@ -228,9 +228,13 @@ bool is_codepoint_whtspace(int codepoint) {
 
 // Draw text using font inside rectangle limits with support for text selection
 // WRAP_WORD must be implemented separatly because it would complexify the common code to much. TODO
-static void DrawSelectableTextBox(Font font, const char *text, Rectangle rec,
+static void DrawTextInRectanble(Font font, const char *text, Rectangle rec,
         float fontSize, float spacing, Color tint, int
         selectStart, int selectLength, Color selectTint, Color selectBackTint) {
+
+    // Do not print if the rectanble is too tight
+    if (rec.width <= 0) return;
+    if (rec.height <= 0) return;
 
     // NO_WRAP: Do not wrap lines
     // WRAP_CHAR: Wrap line on any character
