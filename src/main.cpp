@@ -234,7 +234,7 @@ static void DrawSelectableTextBox(Font font, const char *text, Rectangle rec,
 
     // NO_WRAP: Do not wrap lines
     // WRAP_CHAR: Wrap line on any character
-    const enum {NO_WRAP=0, WRAP_CHAR=2} wrap_mode = NO_WRAP;
+    const enum {NO_WRAP=0, WRAP_CHAR=2} wrap_mode = WRAP_CHAR;
 
     size_t length_byte = TextLength(text);  // Total length in bytes of the text
     float textOffsetX = 0.0f; // Horizontal position of the next character to be drawn
@@ -274,7 +274,11 @@ static void DrawSelectableTextBox(Font font, const char *text, Rectangle rec,
             if (codepoint == '\n' || textOffsetX+glyphWidth > rec.width) {
                 DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
 
-                // If the next line does not fit in the rectangle, stop drawing TODO
+                // If the next line does not fit in the rectangle, stop drawing
+                if (textOffsetY > rec.height) {
+                    break;
+                }
+                // TODO draw something like "..." to indicated not all lines were printed
             }
 
             // Draw the character
@@ -293,7 +297,11 @@ static void DrawSelectableTextBox(Font font, const char *text, Rectangle rec,
             if (codepoint == '\n') {
                 DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
 
-                // If the next line does not fit in the rectangle, stop drawing TODO
+                // If the next line does not fit in the rectangle, stop drawing
+                if (textOffsetY > rec.height) {
+                    break;
+                }
+                // TODO draw something like "..." to indicated not all lines were printed
             }
             else if (textOffsetX+glyphWidth > rec.width) {
                 // If the character does not fit on the screen, ignore it
