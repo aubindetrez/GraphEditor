@@ -129,9 +129,11 @@ static void DrawNewLine(Font, float*, float*, const float&);
 // TODO Load the last used font or the default system font (try to find a Mono varient)
 static Font getDefaultFont(DEConfig& config) {
 #ifdef XLIB_SUPPORT
+#error Support for listing fonts using Xlib is missing/broken
     xlib_list_fonts();
     // FIXME Use Xlib to list the compatible (Mono only?) fonts and load it
 #elif FONTCONFIG_SUPPORT
+#error Support for listing fonts using fontconfig is missing/broken
     fontconfig_list_fonts();
     // TODO Remove hardcode font
 #else
