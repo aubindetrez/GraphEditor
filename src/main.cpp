@@ -2,6 +2,7 @@
 #include <string.h>
 #include "raylib.h"
 
+
 // To do:
 // - Add cursor when text is entered (in editing mode)
 // - Only redraw screen when needed (not every frame)
@@ -9,6 +10,14 @@
 // - Add "[...]" at the bottom if the text doesn't fit
 
 #define MAX_INPUT_CHARS 255
+
+#ifdef XLIB_SUPPORT
+#include "xlib_deps.h"
+#endif
+
+#ifdef FONTCONFIG_SUPPORT
+#include "fontconfig_deps.h"
+#endif
 
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing,
@@ -18,6 +27,23 @@ static void DrawTextInRectanble(Font font, const char *text, Rectangle rec, floa
         Color selectTint, Color selectBackTint);
 static void DrawChar(const Font &, int, const Vector2 &, float, const Color &);
 static void DrawNewLine(Font, float*, float*, const float&);
+
+// TODO Load the last used font or the default system font (try to find a Mono varient)
+static Font getDefaultFont() {
+#ifdef XLIB_SUPPORT
+    xlib_list_fonts();
+    // FIXME Use Xlib to list the compatible (Mono only?) fonts and load it
+    Font font = GetFontDefault();
+#elif FONTCONFIG_SUPPORT
+    fontconfig_list_fonts();
+    // TODO Remove hardcode font
+    Font font = LoadFont("/home/phileas/.fonts/JetBrainsMono/ttf/JetBrainsMono-SemiBold.ttf"); 
+#else
+    // Failback
+    Font font = GetFontDefault();
+#endif
+    return font;
+}
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -61,7 +87,8 @@ int main(void)
 
     Vector2 lastMouse = { 0.0f, 0.0f }; // Stores last mouse coordinates
     Color borderColor = Fade(MAROON, 0.4f); // Container border color
-    Font font = GetFontDefault();       // Get default system font
+
+    Font font = getDefaultFont();
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
