@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <fstream>
 #include "raylib.h"
 
 
@@ -19,6 +20,103 @@
 #include "fontconfig_deps.h"
 #endif
 
+// Diagram Editor's current configuration
+class DEConfig {
+public:
+    DEConfig() {
+    }
+    ~DEConfig() {
+        if (this->fontpath) free(this->fontpath);
+    }
+    int parseEnv() {
+        char* env_font = getenv("DE_FONT");
+        if (!env_font) {
+            puts("Warning: $DE_FONT is not set");
+        } else {
+            this->fontpath = (char*)malloc(strlen(env_font) + /*\0*/ 1);
+            strcpy(this->fontpath, env_font);
+            printf("Font to be loaded ($DE_FONT): %s\n", this->fontpath);
+        }
+
+        return 0;
+    }
+    // Return 0 and sets attributes if successfull
+    // If an error occurs an error code will be returned and attributes will only be
+    // partially initialized
+    // FIXME Do not support partial configurations and use a failback config
+    int parseConfFile() {
+        // set 'filename' to ~/.de.conf
+        const char* user_conf = ".de.conf"; // config filename in the user's home directory
+        char* home_path = getenv("HOME");
+        if (!home_path) {
+            puts("Warning: DEConfig::parseConfFile(): $HOME is not set");
+            return -1;
+        }
+        char* filename = (char*)malloc(strlen(home_path) + /*'/'*/ 1 + strlen(user_conf) + /*'\0'*/ 1); 
+        if (!filename) {
+            puts("Warning: DEConfig::parseConfFile(): Cannot allocate memory for 'filename'");
+            return -1;
+        }
+        strcpy(filename, home_path);
+        strcat(filename, "/");
+        strcat(filename, user_conf);
+
+        // try to open the file
+        FILE* fp = fopen(filename, "r");
+        if (!fp) {
+            puts("Information: DEConfig::parseConfFile(): Default configuration file does not exists");
+            free(filename);
+            return -1;
+        }
+
+        // read the config file
+        char* line = NULL;
+        size_t len = 0;
+        size_t line_count=0;
+        while ((getline(&line, &len, fp)) != -1) {
+            line_count++;
+
+            // TODO Remove this debug message
+            printf("%s:%ld:1: %s", filename, line_count, line);
+
+            if (strncmp("FONTPATH = ", line, 11) == 0) {
+                if (strlen(line) <= 11+1) {
+                    puts("Syntax Error: 'FONTPATH' expects the path to the font to be used");
+                    fclose(fp);
+                    if (line)
+                        free(line);
+                    free(filename);
+                    return 1;
+                } else {
+                    char *arg = line+11; // Point to the character after " = "
+                    this->fontpath = (char*)malloc(strlen(arg) + /*\0*/ 1);
+                    strcpy(this->fontpath, arg);
+
+                    // Remove trailing '\n' if necessary
+                    size_t len = strlen(this->fontpath);
+                    if (this->fontpath[len-1] == '\n') this->fontpath[len-1] = '\0';
+
+                    printf("Font to be loaded (~/.de.config): %s\n", this->fontpath);
+                }
+            } else {
+                puts("Syntax Error: Only setting variables is supported");
+            }
+        }
+        fclose(fp);
+        if (line)
+            free(line);
+        free(filename);
+
+        return 0; // Success
+    }
+    // Return null if not set
+    const char* getFontpath() {
+        return fontpath;
+    }
+private:
+    char* fontpath = NULL;
+};
+
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing,
         Color tint);
@@ -29,18 +127,18 @@ static void DrawChar(const Font &, int, const Vector2 &, float, const Color &);
 static void DrawNewLine(Font, float*, float*, const float&);
 
 // TODO Load the last used font or the default system font (try to find a Mono varient)
-static Font getDefaultFont() {
+static Font getDefaultFont(DEConfig& config) {
 #ifdef XLIB_SUPPORT
     xlib_list_fonts();
     // FIXME Use Xlib to list the compatible (Mono only?) fonts and load it
-    Font font = GetFontDefault();
 #elif FONTCONFIG_SUPPORT
     fontconfig_list_fonts();
     // TODO Remove hardcode font
-    Font font = LoadFont("/home/phileas/.fonts/JetBrainsMono/ttf/JetBrainsMono-SemiBold.ttf"); 
 #else
-    // Failback
-    Font font = GetFontDefault();
+    const char* fontpath = config.getFontpath();
+    Font font;
+    if (fontpath != NULL) font = LoadFont(fontpath);
+    else font = GetFontDefault();
 #endif
     return font;
 }
@@ -61,6 +159,14 @@ int main(void)
     const int boxRigthMargin = 50;
     const int boxTopMargin = 50;
     const int boxBottomMargin = 50;
+
+    DEConfig config;
+
+    // Default: Load config from file (more consistant)
+    if (config.parseConfFile() != 0) {
+        // Failback: Environment
+        config.parseEnv();
+    }
 
     InitWindow(screenWidth, screenHeight, "Diagram editor");
 
@@ -88,7 +194,7 @@ int main(void)
     Vector2 lastMouse = { 0.0f, 0.0f }; // Stores last mouse coordinates
     Color borderColor = Fade(MAROON, 0.4f); // Container border color
 
-    Font font = getDefaultFont();
+    Font font = getDefaultFont(config);
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
