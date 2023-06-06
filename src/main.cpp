@@ -120,9 +120,8 @@ private:
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing,
         Color tint);
-static void DrawTextInRectanble(Font font, const char *text, Rectangle rec, float fontSize,
-        float spacing, Color tint, int selectStart, int selectLength,
-        Color selectTint, Color selectBackTint);
+static void DrawTextInRectanble(Font font, const char *text, Rectangle rec,
+        float fontSize, float spacing, Color tint);
 static void DrawChar(const Font &, int, const Vector2 &, float, const Color &);
 static void DrawNewLine(Font, float*, float*, const float&);
 
@@ -140,6 +139,8 @@ static Font getDefaultFont(DEConfig& config) {
     const char* fontpath = config.getFontpath();
     Font font;
     if (fontpath != NULL) {
+        // TODO FIXME Experimentation with loading millicode fonts
+        // Test and cleanup in progress
         int codepoints[1181] = { 0 };
         for (int i = 0; i < 95; i++) codepoints[i] = 32 + i;
         for (int i = 0; i < 1181-96; i++) codepoints[96 + i] = 0x400 + i;
@@ -210,6 +211,28 @@ int main(void)
     while (!WindowShouldClose())        // Detect window close button or ESC key
     {
         Vector2 mouse = GetMousePosition();
+
+        {
+
+            // TODO FIXME Remove this test:
+            // Debug unicode: Print texture to the screen
+            Vector2 postex = {0, 0}; // Texture's position
+            DrawTextureEx(font.texture, postex, /*rotation*/0, /*scale*/0.5, BLACK);
+
+
+            // FIXME: Failing attempt at printing a unicode ↩ (and experimentation)
+            Vector2 posglyph = {600, 100}; // Texture's position
+            const char *eol_utf8 = u8"ī";
+            int eol_bytecount;
+            int eol_codepoint = GetCodepointNext(eol_utf8, &eol_bytecount);
+            int index = GetGlyphIndex(font, eol_codepoint);
+            printf("char:%s bytecount:%d codepoint:%d index:%d\n", eol_utf8, eol_bytecount, eol_codepoint, index);
+            //DrawTextCodepoint(font, eol_codepoint, posglyph, 25, BLACK);
+            // Alternative:
+            DrawTextEx(font, eol_utf8, posglyph, 25, /*spacing*/0, BLACK);
+
+        }
+
 
         // Check if the mouse is inside the container and toggle border color
         if (CheckCollisionPointRec(mouse, container)) borderColor = MAROON;
@@ -346,6 +369,7 @@ int main(void)
     // De-Initialization
     //--------------------------------------------------------------------------------------
     CloseWindow(); // Close window and OpenGL context
+    UnloadFont(font);
     //--------------------------------------------------------------------------------------
 
     return 0;
@@ -358,7 +382,7 @@ int main(void)
 // Draw text using font inside rectangle limits
 static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float
         fontSize, float spacing, Color tint) {
-    DrawTextInRectanble(font, text, rec, fontSize, spacing, tint, 0, 0, WHITE, WHITE);
+    DrawTextInRectanble(font, text, rec, fontSize, spacing, tint);
 }
 
 // Takes a codepoint returned by GetCodepoint() and returns true if it is a whitespace
@@ -369,8 +393,7 @@ bool is_codepoint_whtspace(int codepoint) {
 // Draw text using font inside rectangle limits with support for text selection
 // WRAP_WORD must be implemented separatly because it would complexify the common code to much. TODO
 static void DrawTextInRectanble(Font font, const char *text, Rectangle rec,
-        float fontSize, float spacing, Color tint, int
-        selectStart, int selectLength, Color selectTint, Color selectBackTint) {
+        float fontSize, float spacing, Color tint) {
 
     // Do not print if the rectanble is too tight
     if (rec.width <= 0) return;
@@ -419,11 +442,7 @@ static void DrawTextInRectanble(Font font, const char *text, Rectangle rec,
                 // TODO draw something like "..." to indicated not all lines were printed
                 // Double the normal spacing to make it obvious that it's not a normal
                 // character
-                Vector2 position = { rec.x + textOffsetX + glyphWidth, rec.y + textOffsetY };
-
-                // FIXME: Failing attempt at printing a unicode ↩
-                //DrawTextEx(font, u8"↩", position, fontSize, /*spacing*/0, tint);
-                //DrawTextCodepoint(font, 0x21A9, position, fontSize, tint);
+                //Vector2 position = { rec.x + textOffsetX + glyphWidth, rec.y + textOffsetY };
 
                 DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
 
