@@ -3,17 +3,16 @@ import freetype, sys
 stdout = open(1, mode="w", encoding="utf8")
 face = freetype.Face("/usr/share/fonts/google-noto-emoji/NotoEmoji-Regular.ttf")
 
-# All unicode char code and glyph
+position=0
+# Iterate over all unicode char codes and glyphs
 for c, g in face.get_chars():
     if c:
-        stdout.write(str(g)+' : '+chr(c)+'\n')
-# 888 chars
+        index = face.get_char_index(chr(c))
+        name = face.get_glyph_name(index)
+        stdout.write("Position:"+str(position)+" Index:"+str(index)
+                     +" char:"+str(g)+' glyph:'+chr(c)+" name:"+str(name)+'\n')
+    position+=1
 
-# Return glyph index of a character code
-# In [12]: face.get_char_index('↩')
-# Out[12]: 29
-# In [16]: face.get_glyph_name(29)
-# Out[16]: b'uni21A9'
-
+# Example: How to get the format:
 # In [14]: face.get_format()
 # Out[14]: b'TrueType'
