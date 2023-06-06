@@ -139,7 +139,12 @@ static Font getDefaultFont(DEConfig& config) {
 #else
     const char* fontpath = config.getFontpath();
     Font font;
-    if (fontpath != NULL) font = LoadFont(fontpath);
+    if (fontpath != NULL) {
+        int codepoints[1181] = { 0 };
+        for (int i = 0; i < 95; i++) codepoints[i] = 32 + i;
+        for (int i = 0; i < 1181-96; i++) codepoints[96 + i] = 0x400 + i;
+        font = LoadFontEx(fontpath, 32, codepoints, 1181);
+    }
     else font = GetFontDefault();
 #endif
     return font;
@@ -411,13 +416,22 @@ static void DrawTextInRectanble(Font font, const char *text, Rectangle rec,
         if (wrap_mode == WRAP_CHAR) {
             // if the current character does not fit on screen
             if (codepoint == '\n' || textOffsetX+glyphWidth > rec.width) {
+                // TODO draw something like "..." to indicated not all lines were printed
+                // Double the normal spacing to make it obvious that it's not a normal
+                // character
+                Vector2 position = { rec.x + textOffsetX + glyphWidth, rec.y + textOffsetY };
+
+                // FIXME: Failing attempt at printing a unicode ↩
+                //DrawTextEx(font, u8"↩", position, fontSize, /*spacing*/0, tint);
+                //DrawTextCodepoint(font, 0x21A9, position, fontSize, tint);
+
                 DrawNewLine(font, &textOffsetX, &textOffsetY, scaleFactor);
 
                 // If the next line does not fit in the rectangle, stop drawing
                 if (textOffsetY > rec.height) {
+                // ⋯ TODO: Print ⋮ to indicate the text continues
                     break;
                 }
-                // TODO draw something like "..." to indicated not all lines were printed
             }
 
             // Draw the character
@@ -438,12 +452,14 @@ static void DrawTextInRectanble(Font font, const char *text, Rectangle rec,
 
                 // If the next line does not fit in the rectangle, stop drawing
                 if (textOffsetY > rec.height) {
+                // ⋯ TODO: Print ⋮ to indicate the text continues
                     break;
                 }
                 // TODO draw something like "..." to indicated not all lines were printed
             }
             else if (textOffsetX+glyphWidth > rec.width) {
                 // If the character does not fit on the screen, ignore it
+                //  TODO: Print ⋯ to indicate the text continues
             } else {
                 Vector2 position = { rec.x + textOffsetX, rec.y + textOffsetY };
                 DrawChar(font,
