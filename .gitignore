@@ -2,3 +2,4 @@ de
 tags
 **/*.o
 sdl
+sdl_static
