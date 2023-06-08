@@ -18,6 +18,10 @@ void get_text_and_rect(SDL_Renderer *renderer, int x, int y, const char *text,
     SDL_Color textColor = {255, 255, 255, 0};
 
     surface = TTF_RenderUTF8_Solid(font, text, textColor);
+
+    // Problem: Cannot configure/disable word wrap
+    //surface = TTF_RenderUTF8_Solid_Wrapped(font, text, textColor, 120);
+
     *texture = SDL_CreateTextureFromSurface(renderer, surface);
     text_width = surface->w;
     text_height = surface->h;
