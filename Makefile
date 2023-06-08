@@ -42,33 +42,37 @@ sdl: src/main_sdl2.cpp
 
 # Compile local SDL
 LOCAL_SDL2_ROOT=deps/SDL/
+$(LOCAL_SDL2_ROOT)/Makefile: $(LOCAL_SDL2_ROOT)/CMakeLists.txt .gitmodules
+	cd $(LOCAL_SDL2_ROOT) && mkdir -p install && ./configure --prefix=`realpath install/`
+$(LOCAL_SDL2_ROOT)/build/SDL.o: $(LOCAL_SDL2_ROOT)/Makefile
+		$(MAKE) -C $(LOCAL_SDL2_ROOT)
+$(LOCAL_SDL2_ROOT)/install/lib/libSDL2.a: $(LOCAL_SDL2_ROOT)/build/SDL.o
+		$(MAKE) -C $(LOCAL_SDL2_ROOT) install
+		touch $@ # Making sure to update the date
 .PHONY: local_sdl
-local_sdl:
-	cd $(LOCAL_SDL2_ROOT) && mkdir -p install && ./configure --prefix=`realpath install/` && \
-		$(MAKE) && \
-		$(MAKE) install
+local_sdl: $(LOCAL_SDL2_ROOT)/install/lib/libSDL2.a
 LOCAL_SDL2_LIBS += $(shell $(LOCAL_SDL2_ROOT)/install/bin/sdl2-config --static-libs)
 LOCAL_SDL2_INCL += $(shell $(LOCAL_SDL2_ROOT)/install/bin/sdl2-config --cflags)
 
 # Compile local SDL_ttf
 LOCAL_SDL2_TTF_ROOT=deps/SDL_ttf/
-.PHONY: local_sdl_ttf
-local_sdl_ttf: local_sdl
+$(LOCAL_SDL2_TTF_ROOT)/Makefile: $(LOCAL_SDL2_TTF_ROOT)/CMakeLists.txt $(LOCAL_SDL2_ROOT)/install/lib/libSDL2.a .gitmodules
 	mkdir -p $(LOCAL_SDL2_TTF_ROOT)/build/ $(LOCAL_SDL2_TTF_ROOT)/install/ && \
 	cmake -S $(LOCAL_SDL2_TTF_ROOT) -B $(LOCAL_SDL2_TTF_ROOT)/build/ \
 	-DCMAKE_INSTALL_PREFIX=$(LOCAL_SDL2_TTF_ROOT)/install/ \
 	-DCMAKE_PREFIX_PATH=$(LOCAL_SDL2_TTF_ROOT)/../SDL/install \
 	-DCMAKE_LIBRARY_PATH=$(LOCAL_SDL2_TTF_ROOT)/../SDL/install \
 	-DBUILD_SHARED_LIBS=OFF \
-	-DSDL2TTF_BUILD_SHARED_LIBS=OFF \
-	&& \
-	$(MAKE) -C $(LOCAL_SDL2_TTF_ROOT)/build/ && \
+	-DSDL2TTF_BUILD_SHARED_LIBS=OFF
+$(LOCAL_SDL2_TTF_ROOT)/build/libSDL2_ttf.a: $(LOCAL_SDL2_TTF_ROOT)/Makefile
+	$(MAKE) -C $(LOCAL_SDL2_TTF_ROOT)/build/
+$(LOCAL_SDL2_TTF_ROOT)/install/lib64/libSDL2_ttf.a: $(LOCAL_SDL2_TTF_ROOT)/build/libSDL2_ttf.a
 	$(MAKE) -C $(LOCAL_SDL2_TTF_ROOT)/build/ install
+	touch $@ # Making sure to update the date
+.PHONY: local_sdl_ttf
+local_sdl_ttf: $(LOCAL_SDL2_TTF_ROOT)/install/lib64/libSDL2_ttf.a
 LOCAL_SDL2_TTF_INCL += -I$(LOCAL_SDL2_TTF_ROOT)/install/include/SDL2 -D_REENTRANT
 LOCAL_SDL2_TTF_LIBS += $(LOCAL_SDL2_TTF_ROOT)/install/lib64/libSDL2_ttf.a
-# -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
-# -DCMAKE_EXE_LINKER_FLAGS="-static" \
-
 
 sdl_static: src/main_sdl2.cpp local_sdl local_sdl_ttf
 	$(CXX) -o $@ $< $(LOCAL_SDL2_LIBS) $(LOCAL_SDL2_INCL) $(LOCAL_SDL2_TTF_LIBS) \
