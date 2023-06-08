@@ -58,6 +58,10 @@ sudo apt install build-essential git cmake libasound2-dev mesa-common-dev libx11
 #sudo pacman -S alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
 
 # For SFML
+sudo dnf install SFML-devel
+
+# For SDL2
+sudo dnf install SDL2-static SDL2_Pango-devel SDL2-devel SDL2_gfx-devel SDL2_image-devel SDL2_mixer-devel SDL2_ttf-devel
 ```
 
 ## Compiling
