@@ -3,7 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#define WINDOW_WIDTH 300
+#define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT (WINDOW_WIDTH)
 
 /*
@@ -17,7 +17,7 @@ void get_text_and_rect(SDL_Renderer *renderer, int x, int y, const char *text,
     SDL_Surface *surface;
     SDL_Color textColor = {255, 255, 255, 0};
 
-    surface = TTF_RenderText_Solid(font, text, textColor);
+    surface = TTF_RenderUTF8_Solid(font, text, textColor);
     *texture = SDL_CreateTextureFromSurface(renderer, surface);
     text_width = surface->w;
     text_height = surface->h;
@@ -55,14 +55,18 @@ int main(int argc, char **argv) {
         fprintf(stderr, "error: font not found\n");
         exit(EXIT_FAILURE);
     }
-    get_text_and_rect(renderer, 0, 0, "hello", font, &texture1, &rect1);
-    get_text_and_rect(renderer, 0, rect1.y + rect1.h, "world", font, &texture2, &rect2);
+    get_text_and_rect(renderer, 0, 0, "Hello world! ⇨", font, &texture1, &rect1);
+    get_text_and_rect(renderer, 0, rect1.y + rect1.h, "New line", font, &texture2, &rect2);
 
     quit = 0;
     while (!quit) {
         while (SDL_PollEvent(&event) == 1) {
             if (event.type == SDL_QUIT) {
                 quit = 1;
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+                    quit = 1;
+                }
             }
         }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
@@ -78,6 +82,7 @@ int main(int argc, char **argv) {
     /* Deinit TTF. */
     SDL_DestroyTexture(texture1);
     SDL_DestroyTexture(texture2);
+    TTF_CloseFont(font);
     TTF_Quit();
 
     SDL_DestroyRenderer(renderer);
