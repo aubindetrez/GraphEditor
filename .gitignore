@@ -3,3 +3,4 @@ tags
 **/*.o
 sdl
 sdl_static
+session.vim
