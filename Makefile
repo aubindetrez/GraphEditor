@@ -1,7 +1,13 @@
 LDFLAGS = -Lsrc
 INCLUDE_DIR = -Isrc
+
 DEFINES = -DDEBUG
-CPPFLAGS = $(INCLUDE_DIR) $(DEFINES) -Wunused-result -s -O1 -Wall -Werror -Wpedantic
+# Enables you to inspect the assembly
+# with: objdump -d -M intel -S <BINARY> | less
+DEBUGFLAG = -g -gdwarf-2
+OPTIMIZATION = -Ofast
+
+CPPFLAGS = $(INCLUDE_DIR) $(DEFINES) -Wunused-result $(OPTIMIZATION) -Wall -Werror -Wpedantic $(DEBUGFLAG)
 
 .PHONY: all
 all: de sdl sdl_static
