@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdlib.h>
 
 #include <SDL2/SDL.h>
@@ -54,13 +55,18 @@ int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_WIDTH, 0, &window, &renderer);
     TTF_Init();
-    TTF_Font *font = TTF_OpenFont(font_path, 24);
+    TTF_Font *font = TTF_OpenFont(font_path, 20);
     if (font == NULL) {
         fprintf(stderr, "error: font not found\n");
         exit(EXIT_FAILURE);
     }
-    get_text_and_rect(renderer, 0, 0, "Hello world! ⇨", font, &texture1, &rect1);
-    get_text_and_rect(renderer, 0, rect1.y + rect1.h, "New line", font, &texture2, &rect2);
+    TTF_SetFontHinting(font, TTF_HINTING_MONO);
+
+    int font_heigth = TTF_FontHeight(font);
+    std::cout << "Font height: " << font_heigth << std::endl;
+
+    get_text_and_rect(renderer, 0, 0, "Main Area ⇨", font, &texture1, &rect1);
+    get_text_and_rect(renderer, 0, rect1.y + rect1.h, "Bottom Text", font, &texture2, &rect2);
 
     quit = 0;
     while (!quit) {
@@ -76,8 +82,20 @@ int main(int argc, char **argv) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
 
-        /* Use TTF textures. */
+        // Draw windows
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0);
+        int w, h;
+        SDL_GetWindowSizeInPixels(window, &w, &h);
+        SDL_RenderDrawLine(renderer, 0, h-2*font_heigth, w, h-2*font_heigth);
+
+        // Draw Images...
+
+        // Draw figures
+
+        // Draw Texts
         SDL_RenderCopy(renderer, texture1, NULL, &rect1);
+        rect2.x = font_heigth/2;
+        rect2.y = h-1.5*font_heigth;
         SDL_RenderCopy(renderer, texture2, NULL, &rect2);
 
         SDL_RenderPresent(renderer);
