@@ -1,6 +1,4 @@
-de
 tags
-**/*.o
-sdl
-sdl_static
+*.o
+*.bin
 session.vim
