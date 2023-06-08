@@ -85,7 +85,7 @@ clean_all: clean clean_sld2 clean_sld2_ttf
 
 .PHONY: clean
 clean:
-	rm -f de *.o sdl
+	rm -f de *.o sdl sdl_static
 
 .PHONY: clean_sld2
 clean_sld2:
