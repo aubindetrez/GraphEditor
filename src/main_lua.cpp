@@ -63,7 +63,7 @@ static int editorConfigStr(lua_State* L)
 int main(int argc, const char * argv[])
 {
     int rc;
-    const char* lua_file = "src/test.lua";
+    const char* lua_file = "tests/test.lua";
     lua_State* L = luaL_newstate(); // create a new lua instance
     luaL_openlibs(L); // give lua access to basic libraries
 
