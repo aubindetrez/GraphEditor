@@ -12,7 +12,7 @@ CPPFLAGS = $(INCLUDE_DIR) $(DEFINES) -Wunused-result $(OPTIMIZATION) -Wall -Werr
 PRODUCTS = # Products to clean
 
 .PHONY: all
-all: de.bin sdl.bin sdl_static.bin lua.bin
+all: de.bin sdl.bin sdl_static.bin lua.bin fops.bin
 
 ################################################################################
 #							  SFML System Install                              #
@@ -86,11 +86,18 @@ sdl_static.bin: src/main_sdl2.cpp local_sdl local_sdl_ttf
 PRODUCTS += sdl_static.bin
 
 ################################################################################
-#								    Cleanup                                    #
+#								      LUA                                      #
 ################################################################################
 lua.bin: src/main_lua.cpp
 	$(CXX) $^ $(shell pkg-config --libs lua) $(shell pkg-config --cflags lua) -o $@
 PRODUCTS += lua.bin
+
+################################################################################
+#						      File operations                                  #
+################################################################################
+fops.bin: src/main_fops.cpp
+	$(CXX) $^ -o $@
+PRODUCTS += fops.bin
 
 ################################################################################
 #								    Cleanup                                    #
