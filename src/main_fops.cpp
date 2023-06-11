@@ -16,38 +16,6 @@
 #define MAX_WIN_COL 750
 #define MAX_WIN_ROW 500 // Maximum number of lines on screen
 
-size_t get_file_size(FILE* fptr) {
-    clock_t start_t, end_t;
-    long bufsize = -1;
-
-    start_t = clock();
-    long saved_offset = ftell(fptr);
-    if (fseek(fptr, 0L, SEEK_END) == 0) {
-         bufsize = ftell(fptr);
-        if (bufsize == -1) {
-            // Error
-        }
-    }
-    fseek(fptr, saved_offset, SEEK_SET); // reset offset
-    end_t = clock();
-    printf("Measure file size using feek: %ld cycles\n", (long)(end_t-start_t));
-    printf("Value: %ld bytes\n", bufsize);
-
-    // Alternative
-    struct stat stat;
-
-    start_t = clock();
-    fstat(fileno(fptr), &stat);
-    off_t size=stat.st_size; // in bytes
-    end_t = clock();
-    printf("Measure file size using stat: %ld cycles\n", (long)(end_t-start_t));
-    printf("Value: %ld bytes\n", size);
-
-    assert(bufsize == size);
-
-    return size;
-}
-
 class LineTableEntry
 {
     public:
@@ -79,7 +47,117 @@ class LineTableEntry
 // Add adding delays to simulate slow filesystem/hardware TODO
 class FileAccess
 {
-    // TODO
+    public:
+        FileAccess();
+        int open(const char* filename) {
+            // mmap(); the entire file in order to parse it and get context aware syntax + search...
+            fptr = fopen(filename, "r");
+            if (fptr == NULL) {
+                printf("Error: Cannot read file\n");
+                return -1;
+            }
+            filesize = _measure_filesize();
+            return 0;
+        }
+        size_t getFileSize() {
+            if (!isOpen()) return 0;
+            return filesize;
+        }
+        bool isOpen() { return fptr != NULL; }
+        ~FileAccess() {
+            if (fptr != NULL) {
+                fclose(fptr);
+                fptr = NULL;
+            }
+        }
+        size_t _measure_filesize() {
+            clock_t start_t, end_t;
+            long bufsize = -1;
+
+            if (!isOpen()) return -1;
+
+            start_t = clock();
+            long saved_offset = ftell(fptr);
+            if (fseek(fptr, 0L, SEEK_END) == 0) {
+                bufsize = ftell(fptr);
+                if (bufsize == -1) {
+                    return -2; // Error
+                }
+            }
+            fseek(fptr, saved_offset, SEEK_SET); // reset offset
+            end_t = clock();
+            printf("Measure file size using feek: %ld cycles\n", (long)(end_t-start_t));
+            printf("Value: %ld bytes\n", bufsize);
+
+            // Alternative
+            struct stat stat;
+
+            start_t = clock();
+            fstat(fileno(fptr), &stat);
+            off_t size=stat.st_size; // in bytes
+            end_t = clock();
+            printf("Measure file size using stat: %ld cycles\n", (long)(end_t-start_t));
+            printf("Value: %ld bytes\n", size);
+
+            assert(bufsize == size);
+
+            return size;
+        }
+        int gotoOffset(long fileOffset) {
+            if (fseek(fptr, fileOffset, SEEK_SET) != 0) {
+                return -1;
+            }
+            return 0;
+        }
+
+        // returns a char or eof (if end of file or error)
+        int getc() {
+            if (!isOpen()) return EOF;
+            return fgetc(fptr);
+        }
+
+        void status() {
+            printf("EOF: %d\n", feof(fptr));
+
+            printf("Error: %d\n", ferror(fptr));
+            // Error can be clearer with clearerr()
+        }
+
+        // Read a line of at most n characters
+        // Return 0 on success, negative value on an error
+        // buffer will be null terminated and may end with \n
+        int getlinen(char *buffer, size_t n) {
+            if (fgets(buffer, n, fptr) == NULL) {
+                return -1;
+            }
+            return 0;
+        }
+
+        // Read a line and realloc a bigger buffer if needed
+        // Return a negative value on an error
+        // else returns the number of characters read (including the final \n)
+        // if buffer is NULL, it will be allocated
+        int getline(char *buffer, size_t *n) {
+            size_t len = getline(buffer, n, fptr);
+            return len;
+        }
+
+        // Read n characters from the file.
+        // On success returns the number of character read, or may return a negative error code
+        // resulting buffer is null-terminated
+        int readn(char *buffer, size_t n) {
+            size_t newlen = fread(buffer, sizeof(char), BUFF_SIZE-1, fptr);
+            if (ferror(fptr) != 0) {
+                fputs("Error reading the file", stderr);
+                return -1;
+            }
+            buffer[newlen++] = '\0';
+            return newlen;
+        }
+
+    private:
+        FILE* fptr = NULL;
+        size_t filesize = 0;
 };
 
 // Loads portions of a file into LineBuffer(s) and store information into a
@@ -87,16 +165,11 @@ class FileAccess
 // Chooses the most performant way to read data from a file depending on the
 // file of the size...
 // Also checks the file is not altered by an other program.
-class FileLoader
+class BufferManager
 {
     public:
-        FileLoader(const char* filename) {
-            // mmap(); the entire file in order to parse it and get context aware syntax + search...
-            fptr = fopen(filename, "r");
-            if (fptr == NULL) {
-                printf("Error: Cannot read file\n");
-            }
-            filesize = get_file_size(fptr);
+        BufferManager(const char* filename) {
+            file.open(filename);
         }
 
         /* \brief Returns the offset in the first for a special line.
@@ -128,7 +201,7 @@ class FileLoader
             }
 
             // Move to the beginning of the file
-            if (fseek(this->fptr, 0L, SEEK_SET) != 0) {
+            if (file.gotoOffset(0L) != 0) {
                 fputs("Error Cannot reset position to beginning of the file", stderr);
                 result = -2; 
                 goto profile_and_return;
@@ -136,9 +209,9 @@ class FileLoader
 
             size_t linecnt=1;
             size_t fileoffset=0;
-            while(!feof(fp))
-            {
-                ch = fgetc(fp); // Move forward in the stream
+            int cc;
+            do {
+                cc = file.getc(); // Move forward in the stream
                 fileoffset++; // Point to the character after 'ch' (actual current position in the file)
                 if(ch == '\n')
                 {
@@ -152,7 +225,8 @@ class FileLoader
                         goto profile_and_return;
                     }
                 }
-            }
+            } while(cc != EOF);
+
 profile_and_return:
             end_t = clock(); // Finish profiling
             printf("Time fine line %lu in file: %ld cycles\n", linenr, (long)(end_t-start_t));
@@ -191,6 +265,7 @@ profile_and_return:
                     // TODO move leftcol characters fill-in an empty LineTableEntry if we reach
                     // a \n on the way
 
+                    // TODO populate the LineTableEntry
                     LineTableEntry* entry = this->getFreeLTE();
                     entry->fileoffset_start = offset;
                     entry->linenr = topline+i;
@@ -201,30 +276,15 @@ profile_and_return:
                     entry->ro =
                     entyr->dirty = false;
                     entyr->data
-                    //if (fgets(buffer, BUFF_SIZE, fptr) == NULL) {
-                    //     printf("Error: Cannot read from file\n");
-                    //}
-
-                    // size_t bufsize=0;
-                    // char* bufline = NULL; // allocated by getline()
-                    // // returns number of char read, including \n
-                    // size_t len = getline(&bufline, &bufsize, fptr);
                 }
             }
 
             end_t = clock();
             printf("Time to buffer data: %ld cycles\n", (long)(end_t-start_t));
 
-            // Alternative:
-            // size_t newlen = fread(buffer, sizeof(char), BUFF_SIZE-1, fp);
-            // if (ferror(fp) != 0) {
-            //     fputs("Error reading the file", stderr);
-            // } else {
-            //     buffer[newlen++] = '\0';
-            // }
         }
         //! Returns true if not all changes have been written back to memory
-        bool changed() {
+        bool needwork() {
             for (size_t i=0; i < sizeof(this->lineTable); i++) {
                 if (this->lineTable[i].dirty) return true;
             }
@@ -233,20 +293,12 @@ profile_and_return:
         int writeBack() {
             // Write large files with mmap(): ftruncate() to expand the file, memmove() the content
         }
-        long getFileOffsetOfLine(size_t linenr) {
-            // TODO
-        }
-        ~FileLoader() {
-            if (fptr != NULL) {
-                fclose(fptr);
-                fptr = NULL;
-            }
+        ~BufferManager() {
         }
 
     private:
-        FILE* fptr = NULL;
+        FileAccess file;
         char buffer[BUFF_SIZE];
-        size_t filesize = 0;
         LineTableEntry lineTable[2*MAX_WIN_ROW] = {0};
 };
 
