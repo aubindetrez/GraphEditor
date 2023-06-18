@@ -19,6 +19,8 @@
 class LineTableEntry
 {
     public:
+        bool initialized;
+
         // How this entry maps to the file
         long fileoffset_start;
         long fileoffset_end;
@@ -26,7 +28,8 @@ class LineTableEntry
         // Line number, need for display and for folds/multi-line conceals to make sense
         size_t linenr;
 
-        // Offset of within line, needed for horizontal scrolling through very long lines
+        // Offset of buffer's first character within it's line,
+        // needed when scrolling very long lines horiozntally
         // 0 if data[0] is the beginning of the line
         size_t charoffset;
 
@@ -137,7 +140,7 @@ class FileAccess
         // Return a negative value on an error
         // else returns the number of characters read (including the final \n)
         // if buffer is NULL, it will be allocated
-        int getline(char *buffer, size_t *n) {
+        int _getline(char **buffer, size_t *n) {
             size_t len = getline(buffer, n, fptr);
             return len;
         }
@@ -153,6 +156,12 @@ class FileAccess
             }
             buffer[newlen++] = '\0';
             return newlen;
+        }
+
+        LineTableEntry* getFreeLTE(void) {
+            if (lineTableSize+1>=sizeof(lineTable)) return NULL;
+            lineTableSize++;
+            return &lineTable[lineTableSize--];
         }
 
     private:
@@ -187,6 +196,9 @@ class BufferManager
         long lineToFileOffset(size_t linenr) {
             long result = -1; // return -1 if line not found => if the file is too short
             clock_t start_t, end_t;
+            size_t linecnt=1;
+            size_t fileoffset=0;
+            int cc;
 
             // TODO if linenr is very large, is it faster to mmap the file?
 
@@ -207,13 +219,10 @@ class BufferManager
                 goto profile_and_return;
             }
 
-            size_t linecnt=1;
-            size_t fileoffset=0;
-            int cc;
             do {
                 cc = file.getc(); // Move forward in the stream
                 fileoffset++; // Point to the character after 'ch' (actual current position in the file)
-                if(ch == '\n')
+                if(cc == '\n')
                 {
                     linecnt++;
                     // TODO Cache linecnt/fileoffseet
@@ -262,20 +271,42 @@ profile_and_return:
                 // for than line
                 for (size_t i = 0; i < winrow; i++) {
 
-                    // TODO move leftcol characters fill-in an empty LineTableEntry if we reach
-                    // a \n on the way
-
-                    // TODO populate the LineTableEntry
                     LineTableEntry* entry = this->getFreeLTE();
-                    entry->fileoffset_start = offset;
+                    entry->initialized = true;
                     entry->linenr = topline+i;
-                    entry->charoffset = 
+                    entry->charoffset = leftcol;
 
-                    entry->fileoffset_end = 
-                    entry->len = 
-                    entry->ro =
-                    entyr->dirty = false;
-                    entyr->data
+                    // skip 'leftcol' characters
+                    // fill-in an empty LineTableEntry if we reach a \n on the way
+                    bool empty_line = false;
+                    for (size_t z = 0; z < leftcol; z++) {
+                        int cc = file.getc();
+                        offset++;
+                        if (cc == EOF || cc == '\n') {
+                            empty_line = true;
+                            break;
+                        }
+                    }
+                    if (empty_line) {
+                        // TODO, empty LTE without any character buffer
+                        entry->fileoffset_start = -1;
+                        entry->fileoffset_end = -1;
+                        entry->len = 0;
+                        entry->ro = true;
+                        entry->dirty = false;
+                        entry->data = NULL;
+                    } else {
+                        // Create one LTE for each line visible on screen
+                        entry->fileoffset_start = offset;
+
+                        // Add all next 'wincol' characters to the buffer, or early stop after '\n'
+
+                        entry->data
+                        entry->fileoffset_end = 
+                        entry->len = 
+                        entry->ro = false; // Can be edited
+                        entry->dirty = false;
+                    }
                 }
             }
 
@@ -300,6 +331,7 @@ profile_and_return:
         FileAccess file;
         char buffer[BUFF_SIZE];
         LineTableEntry lineTable[2*MAX_WIN_ROW] = {0};
+        size_t lineTableSize = 0;
 };
 
 int main(int argc, char** argv) {
